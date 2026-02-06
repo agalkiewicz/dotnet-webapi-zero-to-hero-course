@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -9,6 +10,8 @@ builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
 
 Console.WriteLine($"Running in {builder.Environment.EnvironmentName} environment");
+
+builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("SmtpSettings"));
 
 var app = builder.Build();
 
@@ -27,8 +30,11 @@ api.MapGet("/products", async (
     string? category = null,
     string? sort = "id",
     string order = "asc",
-    IProductService service = default!) =>
+    IProductService service = default!,
+    IOptions<SmtpSettings> options = default!) =>
 {
+    Console.WriteLine($"SMTP Host: {options.Value.Host}"); // Just to demonstrate usage of injected config
+
     pageSize = Math.Clamp(pageSize, 1, 100);
     var (products, totalCount) = await service.GetPagedAsync(page, pageSize, category, sort, order == "desc");
     var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
@@ -391,4 +397,13 @@ public class ProductService : IProductService
         _products.Remove(product);
         return Task.FromResult(true);
     }
+}
+
+public class SmtpSettings
+{
+    public string Host { get; set; } = string.Empty;
+    public int Port { get; set; }
+    public string Username { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
+    public bool EnableSsl { get; set; }
 }
