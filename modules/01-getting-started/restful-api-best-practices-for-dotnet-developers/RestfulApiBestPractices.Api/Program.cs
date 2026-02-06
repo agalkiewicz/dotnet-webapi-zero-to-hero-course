@@ -8,6 +8,8 @@ builder.Services.AddSingleton<IProductService, ProductService>();
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
 
+Console.WriteLine($"Running in {builder.Environment.EnvironmentName} environment");
+
 var app = builder.Build();
 
 // Middleware
