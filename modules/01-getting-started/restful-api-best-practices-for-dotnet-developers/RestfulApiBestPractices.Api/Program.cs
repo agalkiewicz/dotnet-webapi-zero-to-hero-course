@@ -9,11 +9,43 @@ builder.Services.AddSingleton<IProductService, ProductService>();
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
 
+// Checking the environment
 Console.WriteLine($"Running in {builder.Environment.EnvironmentName} environment");
 
+// Bind SmtpSettings from configuration
 builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("SmtpSettings"));
 
 var app = builder.Build();
+
+// Test middlewares
+app.Use(async (context, next) =>
+{
+    Console.WriteLine("Middleware 1: Incoming request");
+    await next();  // Pass control to the next middleware
+    Console.WriteLine("Middleware 1: Outgoing response");
+});
+
+app.Use(async (context, next) =>
+{
+    Console.WriteLine("Middleware 2: Incoming request");
+    await next();
+    Console.WriteLine("Middleware 2: Outgoing response");
+});
+
+app.Use(async (context, next) =>
+{
+    Console.WriteLine("Middleware 3: Incoming request");
+    if (context.Request.Path == "/maintenance")
+    {
+        Console.WriteLine("MAINTENANCE");
+        context.Response.StatusCode = 503;
+        await context.Response.WriteAsync("Service is under maintenance.");
+        return; // Stop further middleware execution
+    }
+
+    await next(context);
+    Console.WriteLine("Middleware 3: Outgoing response");
+});
 
 // Middleware
 app.UseExceptionHandler();
